@@ -1397,62 +1397,74 @@ class FlexibleContext extends MinkContext
     /**
      * Asserts that a NodeElement is fully visible.
      *
-     * @param  NodeElement                      $element
-     * @param  bool                             $not     Asserts NodeElement is partially or not visible in the viewport.
-     * @throws ExpectationException
-     * @throws SpinnerTimeoutException
-     * @throws UnsupportedDriverActionException
+     * @param  NodeElement $element
+     * @throws DriverException                  When the operation cannot be done
+     * @throws Exception                        If a webdriver error occurred.
+     * @throws ExpectationException             If the page did not finish loading.
+     * @throws SpinnerTimeoutException          If the timeout expired before a single assertion could be made.
+     * @throws UnsupportedDriverActionException When operation not supported by the driver
+     * @return bool                             true if the node is fully visible, false if not.
      */
-    public function assertNodeIsFullyVisible(NodeElement $element, $not = false)
+    public function nodeIsFullyVisible(NodeElement $element)
     {
         $this->waitForPageLoad();
 
-        $driver = $this->getSession()->getDriver();
-
         if (!$element->isVisible()) {
-            if (!$not) {
-                throw new ExpectationException('The element is not visible', $driver);
-            }
-
-            return;
+            return false;
         }
 
-        $allAreIn = true;
-
+        /** @var NodeElement[] $parents */
         $parents = array_reverse($this->getListOfAllNodeElementParents($element, 'html'));
 
         if (count($parents) < 1) {
-            throw new ExpectationException('Invalid number of node elements', $driver);
+            return false;
         }
 
         $elementViewportRectangle = $this->getElementViewportRectangle($element);
 
         foreach ($parents as $parent) {
-            if (!$parent->isVisible()) {
-                if (!$not) {
-                    throw new ExpectationException(
-                        'One of the node elements parents is not visible', $driver
-                    );
-                }
-
-                return;
-            }
-
-            $isIn = $not
-                ? $elementViewportRectangle->isNotFullyIn($this->getElementViewportRectangle($parent))
-                : $elementViewportRectangle->isFullyIn($this->getElementViewportRectangle($parent));
-
-            $allAreIn = $allAreIn && !$isIn;
-            if (!$not && !$isIn) {
-                throw new ExpectationException(
-                    'Node is not fully visible in the viewport.', $driver
-                );
+            if (
+                !$parent->isVisible() ||
+                !$elementViewportRectangle->isNotFullyIn($this->getElementViewportRectangle($parent))
+            ) {
+                return false;
             }
         }
-        if ($not && $allAreIn) {
-            throw new ExpectationException(
-                'Node is fully visible in the viewport.', $driver
-            );
+
+        return true;
+    }
+
+    /**
+     * Asserts that a NodeElement is fully visible.
+     *
+     * @param  NodeElement                      $element
+     * @throws DriverException                  When the operation cannot be done
+     * @throws Exception                        If a webdriver error occurred.
+     * @throws ExpectationException             If the page did not finish loading.
+     * @throws SpinnerTimeoutException          If the timeout expired before a single assertion could be made.
+     * @throws UnsupportedDriverActionException When operation not supported by the driver
+     */
+    public function assertNodeIsFullyVisible(NodeElement $element)
+    {
+        if (!$this->nodeIsFullyVisible($element)) {
+            throw new ExpectationException("Expected element to be fully visible, but it wasn't", $this->getSession());
+        }
+    }
+
+    /**
+     * Asserts that a NodeElement is fully visible.
+     *
+     * @param  NodeElement                      $element
+     * @throws DriverException                  When the operation cannot be done
+     * @throws Exception                        If a webdriver error occurred.
+     * @throws ExpectationException             If the page did not finish loading.
+     * @throws SpinnerTimeoutException          If the timeout expired before a single assertion could be made.
+     * @throws UnsupportedDriverActionException When operation not supported by the driver
+     */
+    public function assertNodeIsNotFullyVisible(NodeElement $element)
+    {
+        if ($this->nodeIsFullyVisible($element)) {
+            throw new ExpectationException("Expected element to not be fully visible, but it was", $this->getSession());
         }
     }
 
@@ -1484,9 +1496,9 @@ class FlexibleContext extends MinkContext
     /**
      * Get list of of all NodeElement parents.
      *
-     * @param  NodeElement $nodeElement
-     * @param  string      $stopAt       html tag to stop at
-     * @return array       of nodeElements
+     * @param  NodeElement   $nodeElement
+     * @param  string        $stopAt       html tag to stop at
+     * @return NodeElement[] of nodeElements
      */
     private function getListOfAllNodeElementParents(NodeElement $nodeElement, $stopAt)
     {

@@ -7,6 +7,7 @@ use Behat\Mink\Exception\UnsupportedDriverActionException;
 use Medology\Behat\UsesStoreContext;
 use Medology\SpinnerTimeoutException;
 use ReflectionException;
+use WebDriver\Exception;
 
 class QualityAssurance implements Context
 {
@@ -21,11 +22,12 @@ class QualityAssurance implements Context
      * @param  string                           $qaId The qaId of the dom element to find
      * @param  bool                             $not  Asserts qaId is partially or not visible in the viewport.
      * @throws DriverException                  When the operation cannot be done
-     * @throws ExpectationException             If the element is not (or is) fully visible
+     * @throws Exception                        If a webdriver error occurred.
+     * @throws ExpectationException             If the page did not finish loading.
      * @throws ReflectionException              If injectStoredValues incorrectly believes one or more closures were
      *                                          passed. This should never happen. If it does, there is a problem with
      *                                          the injectStoredValues method.
-     * @throws SpinnerTimeoutException          If the timeout expired before the assertion could be run even once.
+     * @throws SpinnerTimeoutException          If the timeout expired before a single assertion could be made.
      * @throws UnsupportedDriverActionException When operation not supported by the driver
      */
     public function assertQaIDIsFullyVisible($qaId, $not = false)
@@ -46,6 +48,10 @@ class QualityAssurance implements Context
             );
         }
 
-        $this->flexibleContext->assertElementIsFullyVisible($element, $not);
+        if ($not) {
+            $this->flexibleContext->assertNodeIsNotFullyVisible($element);
+        } else {
+            $this->flexibleContext->assertNodeIsFullyVisible($element);
+        }
     }
 }
