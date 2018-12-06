@@ -42,7 +42,7 @@ class Rectangle
      *
      * @param  Rectangle $rectangle Rectangle to check if this one is inside of
      * @param  bool      $not       Changes to not fully in
-     * @return bool      returns
+     * @return bool      true if the specified rectangle is fully within this one, or false if not.
      */
     public function isFullyIn(Rectangle $rectangle, $not = false)
     {
